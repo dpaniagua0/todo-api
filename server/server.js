@@ -1,11 +1,11 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-
+const _ = require('lodash');
+const express = require('express');
+const bodyParser = require('body-parser');
+const {ObjectID} = require('mongodb');
 
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
-var {ObjectID} = require('mongodb');
 
 
 var app = express();
@@ -22,7 +22,7 @@ app.post('/todos', (req, res) => {
   todo.save().then((doc) => {
     res.send(doc);
   }, (e) => {
-    res.status(400).send(e);
+    res.status(404).send(e);
   });
 });
 
@@ -30,33 +30,33 @@ app.get('/todos', (req, res) => {
   Todo.find().then((todos) => {
     res.send({todos});
   }, (e) => {
-    res.status(400).send(e);
+    res.status(404).send(e);
   });
 });
 
 app.get('/todos/:id', (req, res) => {
   var id = req.params.id;
   if(!ObjectID.isValid(id)) {
-    return res.status(400).send('ID is invalid');
+    return res.status(404).send('ID is invalid');
   }
   Todo.findById(id).then((todo) => {
-    if(!todo) { res.status(400).send('Todo not found.');}
+    if(!todo) { res.status(404).send('Todo not found.');}
     res.send(todo);
   }, (e) => {
-    res.status(400).send(e);
+    res.status(404).send(e);
   });
 });
 
 app.delete('/todos/:id', (req, res) => {
   var id = req.params.id;
   if(!ObjectID.isValid(id)) {
-    return res.status(400).send('ID is invalid');
+    return res.status(404).send('ID is invalid');
   }
   Todo.findByIdAndRemove(id).then((todo) => {
-    if(!todo) { res.status(400).send('Todo not found.'); }
+    if(!todo) { res.status(404).send('Todo not found.'); }
     res.send({todo});
   }, (e) => {
-    res.status(400).send(e);
+    res.status(404).send(e);
   });
 });
 
@@ -64,5 +64,27 @@ app.listen(port, () => {
   console.log(`Started on port ${port}`);
 });
 
+app.patch('/todos/:id', (req, res) => {
+  var id = req.params.id;
+  var body = _.pick(req.body, ['text', 'completed']);
+
+  if(!ObjectID.isValid(id)) { return res.status(404).send('Todo not found');}
+
+  if(_.isBoolean(body.completed) && body.completed) {
+    body.compledAt = new Date().getTime( )
+  } else {
+    body.completed = false;
+    body.competedAt = null;
+  }
+
+  Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+    if(!todo) { res.status(404).send(); }
+
+    res.send({todo});
+  }).catch((e) => {
+    res.status(404).send();
+  });
+
+});
 
 module.exports = {app};
