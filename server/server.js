@@ -1,3 +1,5 @@
+require('./config/config.js');
+
 const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -9,7 +11,7 @@ var {User} = require('./models/user');
 
 
 var app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 app.use(bodyParser.json());
 
@@ -41,7 +43,7 @@ app.get('/todos/:id', (req, res) => {
   }
   Todo.findById(id).then((todo) => {
     if(!todo) { res.status(404).send('Todo not found.');}
-    res.send(todo);
+    res.send({todo});
   }, (e) => {
     res.status(404).send(e);
   });
@@ -55,7 +57,7 @@ app.delete('/todos/:id', (req, res) => {
   Todo.findByIdAndRemove(id).then((todo) => {
     if(!todo) { res.status(404).send('Todo not found.'); }
     res.send({todo});
-  }, (e) => {
+  }).catch((e) => {
     res.status(404).send(e);
   });
 });
@@ -71,18 +73,17 @@ app.patch('/todos/:id', (req, res) => {
   if(!ObjectID.isValid(id)) { return res.status(404).send('Todo not found');}
 
   if(_.isBoolean(body.completed) && body.completed) {
-    body.compledAt = new Date().getTime( )
+    body.completedAt = new Date().getTime( )
   } else {
     body.completed = false;
-    body.competedAt = null;
+    body.completedAt = null;
   }
 
   Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
     if(!todo) { res.status(404).send(); }
-
     res.send({todo});
   }).catch((e) => {
-    res.status(404).send();
+    res.status(404).send(e);
   });
 
 });
